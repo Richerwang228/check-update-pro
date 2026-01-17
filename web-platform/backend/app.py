@@ -42,6 +42,11 @@ app.add_middleware(
 frontend_dir = os.path.join(BASE_DIR, '..', 'frontend')
 app.mount("/static", StaticFiles(directory=os.path.normpath(frontend_dir)), name="static")
 
+@app.head("/api/stats")
+@app.get("/api/stats")
+def health_check():
+    return {"status": "online", "type": "dynamic"}
+
 @app.get("/")
 def index():
     return FileResponse(os.path.normpath(os.path.join(frontend_dir, 'index.html')))
