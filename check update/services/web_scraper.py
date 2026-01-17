@@ -76,8 +76,7 @@ class WebScraper:
     def _run_network_diagnosis(self, url: str):
         """运行网络诊断，帮助用户理解问题"""
         self.logger.info("🔍 正在运行快速网络诊断...")
-        print("🔍 正在运行快速网络诊断...")
-        print("=" * 50)
+        self.logger.info("=" * 50)
         
         # 测试基础网络连接
         try:
@@ -88,12 +87,12 @@ class WebScraper:
             # DNS解析测试
             try:
                 ip = socket.gethostbyname(hostname)
-                print(f"✅ DNS解析成功: {hostname} -> {ip}")
+                self.logger.info(f"✅ DNS解析成功: {hostname} -> {ip}")
             except socket.gaierror:
-                print(f"❌ DNS解析失败: 无法解析 {hostname}")
-                print("💡 建议: 检查网络连接或更换DNS服务器")
+                self.logger.error(f"❌ DNS解析失败: 无法解析 {hostname}")
+                self.logger.info("💡 建议: 检查网络连接或更换DNS服务器")
                 return
-                
+            
             # 端口连接测试
             try:
                 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

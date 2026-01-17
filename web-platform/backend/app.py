@@ -64,6 +64,31 @@ if not os.path.exists(db_path):
 engine = create_engine(f'sqlite:///{db_path}')
 Session = sessionmaker(bind=engine)
 
+# Configure Logging
+log_dir = os.path.join(LEGACY_DIR, 'logs')
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, 'app.log')
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file, encoding='utf-8'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Verify Database
+try:
+    with Session() as s:
+        count = s.query(Bookmark).count()
+        logger.info(f"✅ Database connected. Loaded {count} bookmarks.")
+except Exception as e:
+    logger.error(f"❌ Database connection failed: {e}")
+
+class SettingsModel(BaseModel):
+
 class SettingsModel(BaseModel):
     check_interval: int
     update_range_days: int
@@ -264,8 +289,12 @@ def run_check(update_range_days: int):
     updates_cache.clear()
     
     try:
+        logger.info(f"🚀 Starting check for range: {update_range_days} days")
         res = checker.check_all_bookmarks()
+        logger.info(f"✅ Check complete. Found {len(res)} updates.")
         broadcast({"type": "done", "count": len(res)})
+    except Exception as e:
+        logger.error(f"❌ Check failed: {e}", exc_info=True)
     finally:
         with checker_lock:
             current_checker = None
