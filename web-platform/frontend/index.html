@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>更新检查器 Pro</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">⚡</div>
+                <span class="logo-text">Update<br>Checker</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" title="主页">
+                    <span class="icon">🏠</span>
+                    <span class="label">概览</span>
+                </a>
+                <a href="#" class="nav-item" id="navSettings" title="设置">
+                    <span class="icon">⚙️</span>
+                    <span class="label">设置</span>
+                </a>
+                <a href="https://github.com/Richerwang228/check-update-pro/actions" target="_blank" class="nav-item"
+                    title="管理更新">
+                    <span class="icon">🔄</span>
+                    <span class="label">管理</span>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="version">v2.0 Pro</div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="top-bar">
+                <div class="page-title">
+                    <h1>检查更新</h1>
+                    <span class="status-badge" id="statusIndicator" title="连接中..."></span>
+                </div>
+
+                <div class="search-area">
+                    <div class="search-wrapper">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="searchInput" placeholder="搜索视频或作者... (Ctrl+F)">
+                        <span class="search-count" id="updateCount">0</span>
+                    </div>
+                </div>
+
+                <div class="actions-area">
+                    <button id="checkBtn" class="btn btn-primary glow-effect" title="开始检查 (Enter)">
+                        <span class="btn-icon">🚀</span> 开始检查
+                    </button>
+                    <button id="stopBtn" class="btn btn-danger" style="display: none;" title="停止 (Esc)">
+                        <span class="btn-icon">⏹</span> 停止
+                    </button>
+                    <button id="resetBtn" class="btn btn-secondary" title="清空结果">
+                        <span class="btn-icon">🗑</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Progress Section -->
+            <div id="progressSection" class="progress-section">
+                <div class="progress-info">
+                    <span id="progressText">准备就绪</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div id="progressBar" class="progress-bar"></div>
+                </div>
+            </div>
+
+            <!-- Content Grid -->
+            <div id="cardsGrid" class="cards-grid">
+                <!-- Cards will be injected here -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state">
+                <div class="empty-illustration">📦</div>
+                <h3>暂无新内容</h3>
+                <p>点击右上角“开始检查”获取最新视频</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2>⚙️ 全局设置</h2>
+                <button class="close-btn" id="closeSettings">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="settingsForm">
+                    <div class="form-group">
+                        <label>检查时间范围</label>
+                        <div class="input-group">
+                            <input type="number" id="settingRange" min="1" value="7">
+                            <select id="settingUnit">
+                                <option value="1">天</option>
+                                <option value="30">月</option>
+                                <option value="365">年</option>
+                            </select>
+                        </div>
+                        <p class="help-text">仅检查最近这段时间内发布的视频</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>自动检查间隔 (小时)</label>
+                        <input type="number" id="settingInterval" min="1" max="24" value="1">
+                        <p class="help-text">后台自动运行时的检查频率</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label>浏览器路径 (可选)</label>
+                        <input type="text" id="settingBrowserPath"
+                            placeholder="例如: C:\Program Files\Google\Chrome\Application\chrome.exe">
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <label class="switch">
+                            <input type="checkbox" id="settingAutoCheck">
+                            <span class="slider round"></span>
+                        </label>
+                        <span>启用自动检查</span>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelSettings">取消</button>
+                <button type="button" class="btn btn-primary" id="saveSettings">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+
+</html>

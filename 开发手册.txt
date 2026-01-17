@@ -1,0 +1,104 @@
+项目开发手册
+
+项目概览
+- 桌面端：PyQt6 应用，用于批量检查 hsex.men 的视频更新并展示结果。
+- 服务层：统一请求管理、网页抓取、并发检查、页面与图片缓存。
+- 新增 Web 平台：FastAPI + 前端静态页面，支持手机/平板/PC，实时推送进度与更新卡片，卡片点击在新页面打开视频。
+- 数据库：SQLite；日志：logs/app.log；缓存：cache/pages、cache/images。
+
+目录结构
+- check update/ 桌面端工程（保留）
+  - config/ 配置（并发、请求头、缓存）
+  - models/ 数据模型与数据库初始化
+  - services/ 请求管理、抓取与检查逻辑
+  - ui/ PyQt6 UI
+  - utils/ 页面与图片缓存
+- web-platform/ 新建的网页平台（可部署）
+  - backend/app.py FastAPI 后端，复用原工程逻辑
+  - frontend/index.html、style.css、app.js 前端静态资源
+
+核心组件
+- 请求管理器 services/request_manager.py
+  - 全局速率限制、域名最小间隔、失败计数与指数封禁
+  - 域名并发控制：进入/退出并发槽，避免单域“打爆”
+- 网页抓取器 services/web_scraper.py
+  - 真实 UA 与指纹，Cloudflare/429/403/5xx 分支应对
+  - 域名感知有效性判定（结构特征，避免仅用长度）
+  - 短内容软失败：累计阈值后才记入失败，降低误封禁
+  - 条件请求：ETag 与 Last-Modified 命中 304 使用缓存
+- 并发检查器 services/update_checker.py
+  - ThreadPoolExecutor 批量并发
+  - 每线程独立 WebScraper 与（可选）本地数据库会话，避免竞争
+  - 进度与单项回调：驱动 UI 或 WebSocket 实时推送
+- 页面缓存 utils/page_cache.py
+  - 内存 + 磁盘缓存，LRU 策略；支持元数据（etag/last_modified）
+- 图片缓存 utils/image_cache.py
+  - 下载并缓存图片，过期清理
+
+数据模型
+- Bookmark 书签：url、name、avatar_url、last_check_time、check_count、last_video_id、update_frequency、consecutive_no_update
+- Video 视频：video_id、title、thumbnail_url、upload_time、relative_time、is_watched、watched_at、bookmark_id
+- Settings 设置：check_interval、update_range_days、auto_check、last_check_time、browser_path
+
+关键代码位置
+- 域名封禁与退避：check update/services/request_manager.py:111-121
+- 短内容软失败与有效性判定：check update/services/web_scraper.py:319-350
+- 条件请求（304 命中）：check update/services/web_scraper.py:250-271
+- 并发检查与回调：check update/services/update_checker.py:39-71
+- 统计信息展示（桌面端）：check update/ui/qt_main_window.py:958-1026
+
+配置项（部分）
+- check update/config/settings.py
+  - MAX_WORKERS 并发线程数（默认 6）
+  - PAGE_CACHE_TTL 页面缓存 TTL（默认 300s）
+  - DOMAIN_MAX_CONCURRENCY 每域并发上限（默认 2）
+  - IMAGE_LOAD_CONCURRENCY 图片加载并发（桌面端）
+- check update/config/anti_ban_config.py
+  - UA、Headers、代理池、失败惩罚、重试次数
+
+桌面端运行
+- 环境：Python 3.12/3.13；pip install -r "check update/requirements.txt"
+- 启动：python "check update/main.py"
+- 用法：左侧书签列表，右侧更新结果；点击“立即检查”，进度弹窗显示速度与预计剩余时间
+
+Web 平台运行
+- 启动后端：python web-platform/backend/app.py；地址 http://localhost:8000/
+- 交互：
+  - “立即检查”触发 POST /api/check
+  - WebSocket ws://<host>/ws/progress 推送：
+    - progress：{current,total,name,speed}
+    - item：{bookmark:{id,name,avatar_url},video:{video_id,title,thumbnail_url,relative_time}}
+    - done：{count}
+  - 卡片链接 https://hsex.men/video-<video_id>.htm，target="_blank" 新页面打开
+- 接口列表：POST /api/check；GET /api/bookmarks；GET /api/updates；GET /api/stats；GET /api/logs
+
+Cloudflare 部署指南（推荐）
+- 前端 Pages：目录 web-platform/frontend；静态发布
+- 后端 Tunnel：cloudflared 指向本地 http://localhost:8000；前端通过隧道域名访问 /api 与 /ws/progress
+- 替代：云主机 + uvicorn --workers N + Nginx 反代；Cloudflare 仅作 DNS/CDN
+
+性能与稳定性建议
+- 降低封禁：短内容软失败阈值与域名并发上限；Cloudflare/429/403 分支延迟与代理切换
+- 并发调度：跨域优先并发、域内限流（DOMAIN_MAX_CONCURRENCY）
+- 缓存策略：条件请求命中 304，减少带宽；页面缓存 TTL 可调（默认 300s）
+
+日志与诊断
+- logs/app.log：抓取与检查日志；GET /api/logs 返回日志尾部
+- 常见问题：
+  - “立即检查无反应”：前端资源路径错误或后端静态路由拦截；已修复为 /static/* 路径，根返回 index.html
+  - WebSocket 断开：检查浏览器与网络代理，确认 ws:// 或 wss:// 可连通
+  - 桌面端卡进度：线程共享会话导致阻塞；已改为每线程独立会话并使用本地会话提交
+
+安全与后续规划
+- 轻量鉴权（可选）：Authorization: Bearer <token> 增加到后端 API 与 WS 校验
+- 前端框架化：迁移到 React/Vite 或 Vue3，组件化与路由管理
+- 代理池健康度：评分与自动降级，进一步降低挑战页失败率
+- 列表虚拟化（桌面端）：QListView + Delegate 提升大量项渲染性能
+
+快速命令
+- 桌面端：pip install -r "check update/requirements.txt"；python "check update/main.py"
+- Web 平台：python web-platform/backend/app.py；浏览器访问 http://localhost:8000/
+
+致开发者
+- 保持复用与不分叉：Web 平台直接 import 原工程模块，后续升级统一在原工程改动，避免重复维护
+- 提交前运行：桌面端与 Web 平台各自快速验证；确保日志与错误提示清晰

@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+APScheduler>=3.10.0
+python-dateutil>=2.8.2
+SQLAlchemy>=2.0.0
+pillow>=10.0.0
+pycryptodome>=3.15.0
+websockets

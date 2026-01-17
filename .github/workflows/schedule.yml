@@ -1,0 +1,62 @@
+name: Hourly Update Check
+
+on:
+  push:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 * * * *'  # Run every hour
+  workflow_dispatch:      # Allow manual trigger
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  check-and-deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: "pages"
+      cancel-in-progress: false
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        # Install requirements from the legacy project
+        if [ -f "check update/requirements.txt" ]; then
+          pip install -r "check update/requirements.txt"
+        fi
+        
+    - name: Run Update Check
+      env:
+        SITE_PASSWORD: ${{ secrets.SITE_PASSWORD }}
+      run: |
+        python "scripts/run_and_export.py"
+        
+    - name: Commit and Push changes
+      run: |
+        git config --global user.name "Update Bot"
+        git config --global user.email "bot@noreply.github.com"
+        # Add database and json data
+        git add database.sqlite "web-platform/frontend/data.json"
+        # Only commit if there are changes
+        git commit -m "Auto-update: $(date -u)" || echo "No changes to commit"
+        git pull --rebase
+        git push
+        
+    - name: Upload Pages Artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: 'web-platform/frontend'
+        
+    - name: Deploy to GitHub Pages
+      uses: actions/deploy-pages@v4
