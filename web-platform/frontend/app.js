@@ -453,6 +453,49 @@ settingsModal.addEventListener('click', (e) => {
     }
 });
 
+// Logs Logic
+const navLogs = document.getElementById('navLogs');
+navLogs.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await showLogs();
+});
+
+async function showLogs() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    overlay.innerHTML = `
+        <div class="modal-content glass-panel" style="width: 800px; max-width: 95%;">
+            <div class="modal-header">
+                <h2>📜 运行日志 (最后10000字)</h2>
+                <button class="close-btn" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre id="logContent" style="background:#111; padding:10px; border-radius:8px; overflow:auto; max-height:60vh; font-family:monospace; font-size:12px; color:#ddd; white-space:pre-wrap;">加载中...</pre>
+                <div style="margin-top:10px; text-align:right;">
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">关闭</button>
+                    <button class="btn btn-primary" onclick="showLogs()">刷新</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    try {
+        const res = await fetch('/api/logs');
+        const data = await res.json();
+        const pre = overlay.querySelector('#logContent');
+        if (data.data) {
+            pre.textContent = data.data;
+            // Scroll to bottom
+            pre.scrollTop = pre.scrollHeight;
+        } else {
+            pre.textContent = "暂无日志或无法读取日志文件\n(可能是首次运行，请先点击'开始检查')";
+        }
+    } catch (e) {
+        overlay.querySelector('#logContent').textContent = "读取失败: " + e.message;
+    }
+}
+
 // Keyboard Shortcuts
 document.addEventListener('keydown', (e) => {
     if (document.activeElement === searchInput) return;

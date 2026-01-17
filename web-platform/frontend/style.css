@@ -856,13 +856,38 @@ input:checked+.slider:before {
         /* Hide search on mobile for simplicity or make it expandable */
     }
 
+    /* Mobile Card Grid */
     .cards-grid {
-        padding: 1rem;
-        gap: 16px;
+        padding: 12px;
+        gap: 12px;
         grid-template-columns: 1fr;
+        /* Single column on mobile */
+    }
+
+    .card {
+        border-radius: 12px;
+    }
+
+    .card-body {
+        padding: 12px;
+    }
+
+    .card-title {
+        font-size: 1rem;
+        margin-bottom: 4px;
     }
 
     .modal-content {
         width: 90%;
+        margin: 20px auto;
     }
+}
+
+gap: 16px;
+grid-template-columns: 1fr;
+}
+
+.modal-content {
+    width: 90%;
+}
 }
